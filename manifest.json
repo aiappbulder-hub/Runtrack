@@ -1,0 +1,13 @@
+{
+  "name": "RunTrack — Melbourne 2026",
+  "short_name": "RunTrack",
+  "description": "Running calculator & Melbourne Marathon 2026 training plan tracker",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#00897B",
+  "theme_color": "#00897B",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

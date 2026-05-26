@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#00897B">
+<title>RunTrack</title>
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/htm@3/dist/htm.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --teal:#00897B;--teal2:#00695C;--teal3:#004D40;--teal-light:#E0F2F1;--teal-mid:#B2DFDB;
+  --bg:#ECEBE6;--bg2:#FFFFFF;--bg3:#F5F5F0;
+  --text:#1A1A1A;--muted:#666;--dim:#999;
+  --green:#2E7D32;--red:#C62828;--orange:#E65100;--gold:#F59E0B;
+  --nav-h:64px;--sans:'Inter',sans-serif;
+  --radius:16px;--shadow:0 2px 12px rgba(0,0,0,.12);
+}
+html,body{height:100%;background:var(--bg);font-family:var(--sans);color:var(--text);overflow:hidden}
+#app{height:100dvh;display:flex;flex-direction:column;max-width:480px;margin:0 auto;position:relative;overflow:hidden}
+
+/* NAV */
+.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;
+  height:calc(var(--nav-h) + env(safe-area-inset-bottom));
+  background:rgba(255,255,255,.97);backdrop-filter:blur(20px);
+  border-top:1px solid rgba(0,0,0,.08);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;border:none;background:none;cursor:pointer;padding:8px 0;color:var(--dim);transition:color .15s}
+.nav-btn.active{color:var(--teal)}
+.nav-icon{font-size:22px;line-height:1}
+.nav-label{font-size:11px;font-weight:600;letter-spacing:.3px}
+
+/* SCROLL AREA */
+.scroll{flex:1;overflow-y:auto;overflow-x:hidden;padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px);
+  -webkit-overflow-scrolling:touch}
+.scroll::-webkit-scrollbar{display:none}
+
+/* HEADER */
+.page-header{padding:16px 16px 8px;padding-top:calc(16px + env(safe-area-inset-top))}
+.page-title{font-size:22px;font-weight:800;color:var(--teal3)}
+.page-sub{font-size:13px;color:var(--muted);margin-top:2px}
+
+/* CALC GRID */
+.calc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:8px 12px 0}
+.tool-tile{background:var(--teal);border-radius:var(--radius);padding:16px 8px 12px;
+  display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;
+  border:none;transition:transform .1s,background .15s;aspect-ratio:.9}
+.tool-tile:active{transform:scale(.95);background:var(--teal2)}
+.tile-icon{font-size:28px;line-height:1}
+.tile-label{font-size:11px;font-weight:700;color:#fff;text-align:center;line-height:1.2;letter-spacing:.2px;text-transform:uppercase}
+
+/* PANEL OVERLAY */
+.panel-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;
+  display:flex;align-items:flex-end;max-width:480px;left:50%;transform:translateX(-50%)}
+.panel{background:#fff;width:100%;border-radius:20px 20px 0 0;
+  max-height:92dvh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom)}
+.panel-handle{width:36px;height:4px;background:#ddd;border-radius:2px;margin:12px auto 0}
+.panel-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 8px}
+.panel-title{font-size:18px;font-weight:800;color:var(--teal3)}
+.panel-close{background:var(--bg3);border:none;border-radius:50%;width:32px;height:32px;
+  font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.panel-body{padding:4px 16px 24px}
+
+/* INPUTS */
+.field-group{display:flex;flex-direction:column;gap:4px;margin-bottom:14px}
+.field-row{display:grid;gap:10px;margin-bottom:14px}
+.field-row-2{grid-template-columns:1fr 1fr}
+.field-row-3{grid-template-columns:1fr 1fr 1fr}
+label{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+input,select{width:100%;padding:11px 12px;border:1.5px solid #e0e0e0;border-radius:10px;
+  font-size:15px;font-family:var(--sans);color:var(--text);background:#fff;outline:none;transition:border .15s}
+input:focus,select:focus{border-color:var(--teal)}
+.calc-btn{width:100%;padding:13px;background:var(--teal);color:#fff;border:none;border-radius:12px;
+  font-size:16px;font-weight:700;cursor:pointer;margin:4px 0 16px;transition:background .15s}
+.calc-btn:active{background:var(--teal2)}
+
+/* RESULTS */
+.result-card{background:var(--teal-light);border-radius:12px;padding:14px;margin-bottom:10px}
+.result-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;
+  border-bottom:1px solid rgba(0,137,123,.12)}
+.result-row:last-child{border:none}
+.result-label{font-size:13px;color:var(--teal3);font-weight:500}
+.result-value{font-size:15px;font-weight:700;color:var(--teal3);font-variant-numeric:tabular-nums}
+.result-big{font-size:28px;font-weight:800;color:var(--teal);text-align:center;padding:8px 0 4px;font-variant-numeric:tabular-nums}
+.result-sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:8px}
+.result-table{width:100%;border-collapse:collapse;font-size:13px}
+.result-table th{text-align:left;padding:6px 8px;background:var(--teal);color:#fff;font-weight:600}
+.result-table td{padding:6px 8px;border-bottom:1px solid #e0e0e0}
+.result-table tr:nth-child(even) td{background:#f9f9f9}
+.highlight-row td{background:var(--teal-mid)!important;font-weight:700}
+
+/* PLAN */
+.plan-header{padding:16px;background:var(--teal3);color:#fff;margin-bottom:0;
+  padding-top:calc(16px + env(safe-area-inset-top))}
+.plan-meta{font-size:12px;opacity:.8;margin-top:4px}
+.plan-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px 12px 0}
+.stat-card{background:#fff;border-radius:12px;padding:12px;text-align:center;box-shadow:var(--shadow)}
+.stat-val{font-size:20px;font-weight:800;color:var(--teal);font-variant-numeric:tabular-nums}
+.stat-lab{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;margin-top:2px}
+.week-list{padding:12px}
+.week-card{background:#fff;border-radius:14px;margin-bottom:8px;overflow:hidden;cursor:pointer;
+  box-shadow:0 1px 4px rgba(0,0,0,.08);transition:box-shadow .15s;border:2px solid transparent}
+.week-card.current{border-color:var(--teal);box-shadow:0 2px 12px rgba(0,137,123,.2)}
+.week-card.current .wk-phase{background:var(--teal)}
+.week-card:active{box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.wk-head{display:flex;align-items:center;gap:10px;padding:10px 12px}
+.wk-num{font-size:11px;font-weight:700;color:var(--muted);min-width:28px}
+.wk-info{flex:1}
+.wk-dates{font-size:13px;font-weight:600;color:var(--text)}
+.wk-session{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.3;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px}
+.wk-phase{font-size:10px;font-weight:700;color:#fff;background:var(--teal2);
+  border-radius:6px;padding:2px 7px;text-transform:uppercase}
+.wk-km{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.wk-km-plan{font-size:14px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
+.wk-km-actual{font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
+.wk-bar{height:4px;background:var(--bg3);margin:0 12px 8px;border-radius:2px;overflow:hidden}
+.wk-bar-fill{height:100%;border-radius:2px;transition:width .3s}
+.current-badge{background:var(--teal);color:#fff;font-size:9px;font-weight:800;
+  padding:1px 5px;border-radius:4px;text-transform:uppercase;margin-left:4px}
+
+/* WEEK DETAIL */
+.wk-detail-header{background:var(--teal3);color:#fff;padding:14px 16px;
+  padding-top:calc(14px + env(safe-area-inset-top))}
+.wk-detail-title{font-size:18px;font-weight:800}
+.wk-detail-sub{font-size:12px;opacity:.8;margin-top:2px}
+.wk-detail-session{font-size:12px;background:rgba(255,255,255,.15);border-radius:8px;
+  padding:8px;margin-top:8px;line-height:1.4}
+.day-cards{padding:10px 12px}
+.day-card{background:#fff;border-radius:12px;margin-bottom:8px;overflow:hidden;
+  box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.day-head{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;cursor:pointer}
+.day-name{font-size:14px;font-weight:700;color:var(--text)}
+.day-type{font-size:11px;color:var(--muted);margin-top:1px}
+.day-plan-km{font-size:14px;font-weight:700;color:var(--teal);font-variant-numeric:tabular-nums}
+.day-log-form{padding:0 12px 12px;border-top:1px solid #f0f0f0}
+.day-log-inputs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.day-status-btns{display:flex;gap:6px;margin-top:10px}
+.status-btn{flex:1;padding:8px;border:1.5px solid #e0e0e0;border-radius:8px;background:#fff;
+  font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;text-align:center}
+.status-btn.done{border-color:var(--green);background:#E8F5E9;color:var(--green)}
+.status-btn.skip{border-color:var(--red);background:#FFEBEE;color:var(--red)}
+.status-btn.mod{border-color:var(--orange);background:#FFF3E0;color:var(--orange)}
+.rpe-row{margin-top:10px}
+.rpe-label{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;display:flex;justify-content:space-between}
+.rpe-slider{width:100%;accent-color:var(--teal)}
+.note-area{width:100%;margin-top:10px;padding:9px 10px;border:1.5px solid #e0e0e0;border-radius:10px;
+  font-size:14px;font-family:var(--sans);resize:none;outline:none;color:var(--text)}
+.note-area:focus{border-color:var(--teal)}
+.save-log-btn{width:100%;padding:10px;background:var(--teal);color:#fff;border:none;border-radius:10px;
+  font-size:14px;font-weight:700;cursor:pointer;margin-top:10px}
+.actual-badge{display:flex;align-items:center;gap:6px}
+.done-dot{width:8px;height:8px;border-radius:50%;background:var(--green)}
+.skip-dot{width:8px;height:8px;border-radius:50%;background:var(--red)}
+.mod-dot{width:8px;height:8px;border-radius:50%;background:var(--orange)}
+.wk-comment-box{background:var(--teal-light);border-radius:10px;padding:10px;margin:0 12px 12px;font-size:13px;color:var(--teal3);line-height:1.4}
+.wk-comment-label{font-weight:700;margin-bottom:4px;font-size:11px;text-transform:uppercase;letter-spacing:.4px}
+.warn-banner{background:#FFF3E0;border-left:4px solid var(--orange);border-radius:0 8px 8px 0;
+  padding:10px 12px;margin:0 12px 10px;font-size:12px;color:var(--orange);font-weight:600;line-height:1.4}
+.calc-link-btn{display:inline-flex;align-items:center;gap:5px;padding:7px 12px;
+  background:var(--teal-light);color:var(--teal3);border:none;border-radius:8px;
+  font-size:12px;font-weight:700;cursor:pointer;margin-top:8px;margin-right:6px}
+
+/* BACK BTN */
+.back-btn{background:rgba(255,255,255,.2);border:none;color:#fff;padding:6px 12px;
+  border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;margin-bottom:8px}
+
+/* PHASE CHIP */
+.phase-chip{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px;text-transform:uppercase;letter-spacing:.4px}
+.phase-REBUILD{background:#E3F2FD;color:#1565C0}
+.phase-BASE{background:#F3E5F5;color:#6A1B9A}
+.phase-BUILD{background:#FFF8E1;color:#F57F17}
+.phase-PEAK{background:#FCE4EC;color:#B71C1C}
+.phase-TAPER{background:#E8F5E9;color:#1B5E20}
+.phase-RACE{background:var(--teal-light);color:var(--teal3)}
+
+.loading{display:flex;align-items:center;justify-content:center;height:100dvh;
+  font-size:18px;font-weight:700;color:var(--teal)}
+</style>
+</head>
+<body>
+<div id="app"><div class="loading">RunTrack ...</div></div>
+<script>
+const {useState,useEffect,useCallback,useRef} = React;
+const html = htm.bind(React.createElement);
+
+// ─── PLAN DATA ───────────────────────────────────────────────────────────────
+const PLAN = [
+  {wk:1,dates:"28 Apr–4 May",phase:"REBUILD",
+   plan:{mon:8,tue:12,wed:8,thu:10,fri:6,sat:10,sun:16},total:70,
+   session:"Group: 6×800m moderate · Hills: 8×60s moderate · Sun 16km easy — first long, go slow",
+   actual:{mon:5.1,tue:17.9,wed:10,thu:24.4,fri:5,sat:16.3,sun:21.3},actualTotal:100,
+   comment:"100km vs 70km plan — strong opener but WAY over target volume. Long run 21km (plan 16km). Carry forward: trust the easy days, don't add more long run distance yet."},
+  {wk:2,dates:"5–11 May",phase:"REBUILD",
+   plan:{mon:8,tue:12,wed:10,thu:10,fri:6,sat:10,sun:18},total:74,
+   session:"Group: 5×1km guided · Hills: 10×60s building · Sun 18km @ 6:00–6:20/km",
+   actual:{mon:16.2,tue:13.2,wed:7,thu:5,fri:5.2,sat:16.1,sun:33},actualTotal:95.7,
+   comment:"96km vs 74km plan — again over. Long run 33.3km vs planned 18km — WATCH THIS. Carry forward: stick closer to the planned long run distance."},
+  {wk:3,dates:"12–18 May",phase:"REBUILD",
+   plan:{mon:8,tue:12,wed:10,thu:10,fri:8,sat:10,sun:20},total:78,
+   session:"Group: tempo style · Hills: 6×90s mod-hard · Sun 20km @ 5:55–6:15/km",
+   actual:{mon:0,tue:12,wed:0,thu:9.1,fri:5.1,sat:17.7,sun:34},actualTotal:77.9,
+   comment:"78km — MATCHED the plan total ✓. First week on target. Long run 34km vs planned 20km — still running long runs way ahead of plan. Carry forward: the plan long runs build to 40km in Sept — don't peak too early."},
+  {wk:4,dates:"19–25 May",phase:"REBUILD",
+   plan:{mon:8,tue:10,wed:8,thu:10,fri:5,sat:8,sun:16},total:65,
+   session:"RECOVERY WEEK — back off, absorb · Hills 8×60s easy",
+   actual:{mon:0,tue:12.5,wed:5,thu:5,fri:17,sat:15,sun:16},actualTotal:70.5,
+   comment:"Recovery week. Sat parkrun 19:18 — fastest of year, WON the race. But plan said EASY. Keep recovery weeks RECOVERY — you keep racing parkrun when you're supposed to jog it."},
+  {wk:5,dates:"26 May–1 Jun",phase:"REBUILD",plan:{mon:10,tue:12,wed:10,thu:10,fri:8,sat:10,sun:22},total:82,
+   session:"Group: intervals push harder · Hills: 8×90s · Sun 22km easy"},
+  {wk:6,dates:"2–8 Jun",phase:"REBUILD",plan:{mon:10,tue:14,wed:10,thu:12,fri:8,sat:10,sun:24},total:88,
+   session:"Group: race-style benchmark · Hills: 5×2min + 5×60s · Parkrun aim sub-19:30"},
+  {wk:7,dates:"9–15 Jun",phase:"BASE",plan:{mon:10,tue:14,wed:12,thu:12,fri:11,sat:10,sun:26},total:95,
+   session:"Group: 8×600m @ 10k effort · Hills: 6×2min hard · Sun 26km"},
+  {wk:8,dates:"16–22 Jun",phase:"BASE",plan:{mon:12,tue:14,wed:12,thu:12,fri:12,sat:10,sun:28},total:100,
+   session:"Group: 5×1km @ 5k effort · Hills: 4×3min + 4×60s · Parkrun aim sub-19"},
+  {wk:9,dates:"23–29 Jun",phase:"BASE",plan:{mon:12,tue:16,wed:13,thu:12,fri:12,sat:10,sun:30},total:105,
+   session:"Group: 3×2km threshold · Hills: 8×90s + 6×30s · Sun 30km"},
+  {wk:10,dates:"30 Jun–6 Jul",phase:"BASE",plan:{mon:10,tue:12,wed:10,thu:10,fri:14,sat:10,sun:22},total:88,
+   session:"RECOVERY WEEK — back off, absorb"},
+  {wk:11,dates:"7–13 Jul",phase:"BASE",plan:{mon:12,tue:16,wed:14,thu:14,fri:14,sat:10,sun:32},total:112,
+   session:"Group: 4×1.5km @ 10k · Hills: 6×2min + 4×1min circuit · Parkrun aim sub-18:45"},
+  {wk:12,dates:"14–20 Jul",phase:"BASE",plan:{mon:14,tue:16,wed:14,thu:14,fri:16,sat:10,sun:34},total:118,
+   session:"Group: 2×4km tempo · Hills: 8×2min hard · Sun 34km"},
+  {wk:13,dates:"21–27 Jul",phase:"BUILD",plan:{mon:14,tue:18,wed:14,thu:14,fri:18,sat:10,sun:34},total:122,
+   session:"Group: 6×1km @ 4:10–4:20 · Hills: 3×(4×60s) · Parkrun aim sub-18:30 · Sun 34km, LAST 8KM @ MP"},
+  {wk:14,dates:"28 Jul–3 Aug",phase:"BUILD",plan:{mon:14,tue:18,wed:16,thu:14,fri:20,sat:10,sun:36},total:128,
+   session:"Group: 10×800m @ 4:05 · Hills: 5×2min + 5×30s explosive · Sun 36km easy"},
+  {wk:15,dates:"4–10 Aug",phase:"BUILD",plan:{mon:16,tue:18,wed:16,thu:14,fri:24,sat:10,sun:36},total:134,
+   session:"Group: 5×2km @ 4:08–4:12 · Hills: 8×90s fast · Parkrun aim sub-18:15 · Sun 36km, LAST 12KM @ MP"},
+  {wk:16,dates:"11–17 Aug",phase:"BUILD",plan:{mon:14,tue:14,wed:14,thu:12,fri:20,sat:10,sun:28},total:112,
+   session:"RECOVERY WEEK — absorb · Parkrun easy"},
+  {wk:17,dates:"18–24 Aug",phase:"BUILD",plan:{mon:16,tue:20,wed:16,thu:16,fri:22,sat:10,sun:38},total:138,
+   session:"Group: 3×3km @ 4:05–4:10 · Hills: 6×2min + 4×45s · Parkrun aim sub-18 · Sun 38km, LAST 15KM @ MP"},
+  {wk:18,dates:"25–31 Aug",phase:"BUILD",plan:{mon:16,tue:18,wed:16,thu:16,fri:22,sat:10,sun:38},total:136,
+   session:"Group: 8×1km @ 4:03–4:08 · Hills: 5×2min + 2min flat combo · Sun 38km easy"},
+  {wk:19,dates:"1–7 Sep",phase:"PEAK",plan:{mon:16,tue:20,wed:16,thu:16,fri:24,sat:10,sun:40},total:142,
+   session:"★ BIGGEST WEEK ★ Group: 2×5km @ 4:05 · Hills: 8×2min MAX · Parkrun aim sub-17:45 · Sun 40km INCL 20KM @ MP"},
+  {wk:20,dates:"8–14 Sep",phase:"PEAK",plan:{mon:16,tue:18,wed:16,thu:14,fri:24,sat:10,sun:40},total:138,
+   session:"Group: 4×2km @ 4:03 · Hills: 6×2min hard · Sun 40km, LAST 18KM @ MP"},
+  {wk:21,dates:"15–21 Sep",phase:"PEAK",plan:{mon:14,tue:18,wed:14,thu:14,fri:22,sat:10,sun:38},total:130,
+   session:"Group: 6×1km @ 3:58–4:02 · Hills: 6×90s tightening · Parkrun aim sub-17:30 · Sun 38km, LAST 15KM @ MP"},
+  {wk:22,dates:"22–28 Sep",phase:"TAPER",plan:{mon:12,tue:14,wed:12,thu:12,fri:9,sat:10,sun:26},total:95,
+   session:"TAPER — Group: 5×1km @ 4:00 · Hills: 4×90s light · Parkrun EASY · Sun 26km easy"},
+  {wk:23,dates:"29 Sep–5 Oct",phase:"TAPER",plan:{mon:8,tue:12,wed:8,thu:10,fri:4,sat:8,sun:18},total:68,
+   session:"TAPER — Group: 4×1km @ 4:05 · Hills: 4×60s + strides · Parkrun EASY · Sun 18km easy"},
+  {wk:24,dates:"6–12 Oct",phase:"RACE",plan:{mon:4,tue:8,wed:4,thu:8,fri:4,sat:4,sun:42.2},total:74.2,
+   session:"★ RACE WEEK ★ Tue 3×1km @ MP · Thu 8km + strides · Sat 20min easy · 🏃 MELBOURNE MARATHON SUN 11 OCT"}
+];
+
+const DAYS = ['mon','tue','wed','thu','fri','sat','sun'];
+const DAY_NAMES = {mon:'Monday',tue:'Tuesday',wed:'Wednesday',thu:'Thursday',fri:'Friday',sat:'Saturday',sun:'Sunday'};
+const DAY_TYPES = {
+  mon:'Easy run',tue:'Group / Intervals',wed:'Easy run',
+  thu:'Easy / Moderate',fri:'Hills session',sat:'Parkrun',sun:'Long run'
+};
+const CURRENT_WEEK = 5;
+const LSKEY = 'rt-logs';
+
+function getLogs(){try{return JSON.parse(localStorage.getItem(LSKEY)||'{}')}catch{return {}}}
+function saveLogs(logs){localStorage.setItem(LSKEY,JSON.stringify(logs))}
+
+// ─── MATH HELPERS ────────────────────────────────────────────────────────────
+function parsePace(s){
+  // "4:30" or "4:30.5" → decimal minutes
+  var parts=(s||'').trim().split(':');
+  if(parts.length<2)return NaN;
+  return parseFloat(parts[0])*1+parseFloat(parts[1])/60;
+}
+function fmtPace(dec){
+  if(!isFinite(dec)||dec<=0)return '--';
+  var m=Math.floor(dec);
+  var s=Math.round((dec-m)*60);
+  if(s===60){m++;s=0;}
+  return m+':'+(s<10?'0':'')+s;
+}
+function fmtTime(totalSecs){
+  if(!isFinite(totalSecs)||totalSecs<0)return '--';
+  var h=Math.floor(totalSecs/3600);
+  var m=Math.floor((totalSecs%3600)/60);
+  var s=Math.round(totalSecs%60);
+  if(s===60){m++;s=0;}if(m===60){h++;m=0;}
+  return (h>0?h+':':'')+(m<10&&h>0?'0':'')+m+':'+(s<10?'0':'')+s;
+}
+function parseTime(s){
+  // "1:23:45" or "23:45" → seconds
+  var p=(s||'').trim().split(':').map(Number);
+  if(p.some(isNaN))return NaN;
+  if(p.length===3)return p[0]*3600+p[1]*60+p[2];
+  if(p.length===2)return p[0]*60+p[1];
+  return NaN;
+}
+// Riegel race predictor
+function riegel(t1Secs,d1,d2){return t1Secs*Math.pow(d2/d1,1.06);}
+// VDOT estimate from race (Jack Daniels simplified)
+function calcVDOT(distKm,timeSecs){
+  var v=distKm*1000/timeSecs*60; // m/min
+  var t=timeSecs/60;
+  var pct=0.8+0.1894393*Math.exp(-0.012778*t)+0.2989558*Math.exp(-0.1932605*t);
+  var vo2=(-4.6+0.182258*v+0.000104*v*v)/pct;
+  return Math.round(vo2*10)/10;
+}
+// Pace from VDOT for various intensities (Jack Daniels)
+function vdotPaces(vdot){
+  // velocity at VO2Max in m/min
+  var vVO2 = (vdot+4.6)/0.182258; // simplified inverse
+  var easy   = 1000/(vVO2*0.67)/60;   // min/km
+  var mp     = 1000/(vVO2*0.80)/60;
+  var thresh = 1000/(vVO2*0.875)/60;
+  var intv   = 1000/(vVO2*0.975)/60;
+  var rep    = 1000/(vVO2*1.05)/60;
+  return {easy,mp,thresh,intv,rep};
+}
+
+// ─── CALCULATORS ─────────────────────────────────────────────────────────────
+
+function PaceConverter(){
+  var [mode,setMode]=useState('pace');
+  var [paceIn,setPaceIn]=useState('5:00');
+  var [unit,setUnit]=useState('km');
+  var [speedIn,setSpeedIn]=useState('12');
+  var [res,setRes]=useState(null);
+  function calc(){
+    if(mode==='pace'){
+      var p=parsePace(paceIn);
+      if(isNaN(p)||p<=0)return;
+      var spKmh=60/p;
+      var spMph=spKmh/1.60934;
+      var pMile=p*1.60934;
+      if(unit==='mile'){p/=1.60934;spKmh=60/p*1.60934;}
+      setRes({spKmh,spMph,pKm:unit==='km'?parsePace(paceIn):parsePace(paceIn)/1.60934,pMile:unit==='km'?parsePace(paceIn)*1.60934:parsePace(paceIn)});
+    } else {
+      var sp=parseFloat(speedIn);
+      if(isNaN(sp)||sp<=0)return;
+      var spKmh2=unit==='km'?sp:sp*1.60934;
+      var pKm=60/spKmh2;
+      setRes({spKmh:spKmh2,spMph:spKmh2/1.60934,pKm,pMile:pKm*1.60934});
+    }
+  }
+  return html`<div>
+    <div class="field-row field-row-2">
+      <div class="field-group"><label>Mode</label>
+        <select value=${mode} onChange=${e=>setMode(e.target.value)}>
+          <option value="pace">Pace → Speed</option>
+          <option value="speed">Speed → Pace</option>
+        </select></div>
+      <div class="field-group"><label>Unit</label>
+        <select value=${unit} onChange=${e=>setUnit(e.target.value)}>
+          <option value="km">per km / km/h</option>
+          <option value="mile">per mile / mph</option>
+        </select></div>
+    </div>
+    ${mode==='pace'?html`<div class="field-group"><label>Pace (min:sec)</label>
+      <input value=${paceIn} onInput=${e=>setPaceIn(e.target.value)} placeholder="5:00"/></div>`
+    :html`<div class="field-group"><label>Speed (${unit==='km'?'km/h':'mph'})</label>
+      <input type="number" value=${speedIn} onInput=${e=>setSpeedIn(e.target.value)} placeholder="12"/></div>`}
+    <button class="calc-btn" onClick=${calc}>Convert</button>
+    ${res&&html`<div class="result-card">
+      <div class="result-row"><span class="result-label">Pace /km</span><span class="result-value">${fmtPace(res.pKm)} min/km</span></div>
+      <div class="result-row"><span class="result-label">Pace /mile</span><span class="result-value">${fmtPace(res.pMile)} min/mi</span></div>
+      <div class="result-row"><span class="result-label">Speed</span><span class="result-value">${res.spKmh.toFixed(2)} km/h</span></div>
+      <div class="result-row"><span class="result-label">Speed</span><span class="result-value">${res.spMph.toFixed(2)} mph</span></div>
+    </div>`}
+  </div>`;
+}
+
+function CadenceConverter(){
+  var [cad,setCad]=useState('170');
+  var [pace,setPace]=useState('5:00');
+  var [res,setRes]=useState(null);
+  function calc(){
+    var c=parseInt(cad);var p=parsePace(pace);
+    if(isNaN(c)||isNaN(p)||c<=0||p<=0)return;
+    var speedMs=(1000/60)/p; // m/s
+    var strideLen=speedMs/(c/60); // m per stride (both feet)
+    var stepLen=strideLen/2;
+    var optCad=Math.round(180);
+    var optStrideLen=speedMs/(optCad/60);
+    setRes({strideLen:strideLen.toFixed(2),stepLen:stepLen.toFixed(2),optCad,optStrideLen:optStrideLen.toFixed(2),
+      diff:c<170?'Increase cadence — shorter, quicker steps reduce injury risk':c>185?'Cadence is high — focus on relaxed turnover':'Cadence is in optimal range ✓'});
+  }
+  return html`<div>
+    <div class="field-row field-row-2">
+      <div class="field-group"><label>Cadence (spm)</label>
+        <input type="number" value=${cad} onInput=${e=>setCad(e.target.value)} placeholder="170"/></div>
+      <div class="field-group"><label>Pace (min/km)</label>
+        <input value=${pace} onInput=${e=>setPace(e.target.value)} placeholder="5:00"/></div>
+    </div>
+    <button class="calc-btn" onClick=${calc}>Calculate</button>
+    ${res&&html`<div class="result-card">
+      <div class="result-row"><span class="result-label">Stride length</span><span class="result-value">${res.strideLen} m</span></div>
+      <div class="result-row"><span class="result-label">Step length</span><span class="result-value">${res.stepLen} m</span></div>
+      <div class="result-row"><span class="result-label">At 180spm stride</span><span class="result-value">${res.optStrideLen} m</span></div>
+      <div style="background:var(--teal-light);border-radius:8px;padding:10px;margin-top:8px;font-size:13px;color:var(--teal3)">${res.diff}</div>
+    </div>`}
+  </div>`;
+}
+
+function SplitTimes(){
+  var [dist,setDist]=useState('42.2');
+  var [time,setTime]=useState('2:55:00');
+  var [splitDist,setSplitDist]=useState('5');
+  var [res,setRes]=useState(null);
+  function calc(){
+    var d=parseFloat(dist);var t=parseTime(time);var sd=parseFloat(splitDist);
+    if(isNaN(d)||isNaN(t)||isNaN(sd)||d<=0||t<=0||sd<=0)return;
+    var pacePerKm=t/d;
+    var splits=[];var cum=0;
+    for(var i=sd;i<=d+0.001;i+=sd){
+      var segDist=Math.min(sd,d-(i-sd));
+      cum+=segDist*pacePerKm;
+      splits.push({km:Math.min(i,d).toFixed(1),split:fmtTime(segDist*pacePerKm),cumulative:fmtTime(cum)});
+    }
+    setRes({pace:fmtPace(pacePerKm/60),splits});
+  }
+  return html`<div>
+    <div class="field-row field-row-2">
+      <div class="field-group"><label>Distance (km)</label>
+        <input type="number" value=${dist} onInput=${e=>setDist(e.target.value)} placeholder="42.2"/></div>
+      <div class="field-group"><label>Target time</label>
+        <input value=${time} onInput=${e=>setTime(e.target.value)} placeholder="2:55:00"/></div>
+    </div>
+    <div class="field-group"><label>Split every (km)</label>
+      <select value=${splitDist} onChange=${e=>setSplitDist(e.target.value)}>
+        <option value="1">Every 1 km</option>
+        <option value="5" selected>Every 5 km</option>
+        <option value="10">Every 10 km</option>
+      </select></div>
+    <button class="calc-btn" onClick=${calc}>Generate Splits</button>
+    ${res&&html`<div>
+      <div class="result-big">${res.pace}/km</div>
+      <div class="result-sub">Even split pace</div>
+      <table class="result-table">
+        <thead><tr><th>Split</th><th>Time</th><th>Cumulative</th></tr></thead>
+        <tbody>${res.splits.map((s,i)=>html`<tr key=${i} class=${parseFloat(s.km)===42.2?'highlight-row':''}>
+          <td>${s.km} km</td><td>${s.split}</td><td>${s.cumulative}</td></tr>`)}</tbody>
+      </table>
+    </div>`}
+  </div>`;
+}
+
+const RACE_DISTS=[{label:'5K',km:5},{label:'10K',km:10},{label:'15K',km:15},
+  {label:'Half',km:21.0975},{label:'30K',km:30},{label:'Marathon',km:42.195}];
+
+function RacePredictor(){
+  var [fromDist,setFromDist]=useState('5');
+  var [fromTime,setFromTime]=useState('19:59');
+  var [res,setRes]=useState(null);
+  function calc(){
+    var d=parseFloat(fromDist);var t=parseTime(fromTime);
+    if(isNaN(d)||isNaN(t)||d<=0||t<=0)return;
+    var preds=RACE_DISTS.map(rd=>({...rd,secs:riegel(t,d,rd.km),pace:null}));
+    preds.forEach(p=>{p.pace=fmtPace(p.secs/p.km/60);p.time=fmtTime(p.secs);});
+    setRes(preds);
+  }
+  return html`<div>
+    <div class="field-row field-row-2">
+      <div class="field-group"><label>Recent race distance (km)</label>
+        <select value=${fromDist} onChange=${e=>setFromDist(e.target.value)}>
+          ${RACE_DISTS.map(d=>html`<option key=${d.km} value=${d.km}>${d.label} (${d.km}km)</option>`)}
+        </select></div>
+      <div class="field-group"><label>Your time</label>
+        <input value=${fromTime} onInput=${e=>setFromTime(e.target.value)} placeholder="19:59"/></div>
+    </div>
+    <button class="calc-btn" onClick=${calc}>Predict Races</button>
+    ${res&&html`<table class="result-table">
+      <thead><tr><th>Race</th><th>Predicted</th><th>Pace/km</th></tr></thead>
+      <tbody>${res.map(r=>html`<tr key=${r.label} class=${parseFloat(fromDist)===r.km?'highlight-row':''}>
+        <td>${r.label}</td><td>${r.time}</td><td>${r.pace}</td></tr>`)}</tbody>
+    </table>`}
+  </div>`;
+}
+
+function PBAnalysis(){
+  var [pbs,setPbs]=useState({d5:'19:59',d10:'',hm:'',fm:''});
+  var [res,setRes]=useState(null);
+  function calc(){
+    var entries=[];
+    if(pbs.d5){var t=parseTime(pbs.d5);if(!isNaN(t))entries.push({label:'5K',km:5,secs:t});}
+    if(pbs.d10){var t=parseTime(pbs.d10);if(!isNaN(t))entries.push({label:'10K',km:10,secs:t});}
+    if(pbs.hm){var t=parseTime(pbs.hm);if(!isNaN(t))entries.push({label:'Half',km:21.0975,secs:t});}
+    if(pbs.fm){var t=parseTime(pbs.fm);if(!isNaN(t))entries.push({label:'Marathon',km:42.195,secs:t});}
+    if(entries.length<1)return;
+    // Predict from each PB what other distances should be, then compare actuals
+    var base=entries[0];
+    var preds=RACE_DISTS.filter(d=>[5,10,21.0975,42.195].includes(d.km)).map(rd=>{
+      var pred=riegel(base.secs,base.km,rd.km);
+      var actual=entries.find(e=>e.km===rd.km);
+      return {label:rd.label,km:rd.km,pred:fmtTime(pred),actual:actual?fmtTime(actual.secs):'—',
+        diff:actual?Math.round((actual.secs-pred)):'—'};
+    });
+    setRes(preds);
+  }
+  return html`<div>
+    <div class="field-group"><label>5K PB</label>
+      <input value=${pbs.d5} onInput=${e=>setPbs({...pbs,d5:e.target.value})} placeholder="19:59"/></div>
+    <div class="field-group"><label>10K PB</label>
+      <input value=${pbs.d10} onInput=${e=>setPbs({...pbs,d10:e.target.value})} placeholder="41:30"/></div>
+    <div class="field-group"><label>Half Marathon PB</label>
+      <input value=${pbs.hm} onInput=${e=>setPbs({...pbs,hm:e.target.value})} placeholder="1:32:00"/></div>
+    <div class="field-group"><label>Marathon PB</label>
+      <input value=${pbs.fm} onInput=${e=>setPbs({...pbs,fm:e.target.value})} placeholder="3:07:15"/></div>
+    <button class="calc-btn" onClick=${calc}>Analyse</button>
+    ${res&&html`<table class="result-table">
+      <thead><tr><th>Race</th><th>Predicted</th><th>Actual</th><th>Diff (s)</th></tr></thead>
+      <tbody>${res.map(r=>html`<tr key=${r.label}>
+        <td>${r.label}</td><td>${r.pred}</td><td>${r.actual}</td>
+        <td style="color:${r.diff==='—'?'#999':r.diff>30?'var(--red)':r.diff<-30?'var(--green)':'var(--text)'}">${r.diff==='—'?'—':r.diff>0?'+'+r.diff:r.diff}s</td>
+      </tr>`)}</tbody>
+    </table>`}
+  </div>`;
+}
+
+function VO2MaxCalc(){
+  var [dist,setDist]=useState('5');
+  var [time,setTime]=useState('19:59');
+  var [res,setRes]=useState(null);
+  function calc(){
+    var d=parseFloat(dist);var t=parseTime(time);
+    if(isNaN(d)||isNaN(t)||d<=0||t<=0)return;
+    var vdot=calcVDOT(d,t);
+    var paces=vdotPaces(vdot);
+    setRes({vdot,paces});
+  }
+  return html`<div>
+    <div class="field-row field-row-2">
+      <div class="field-group"><label>Race distance (km)</label>
+        <select value=${dist} onChange=${e=>setDist(e.target.value)}>
+          ${RACE_DISTS.map(d=>html`<option key=${d.km} value=${d.km}>${d.label}</option>`)}
+        </select></div>
+      <div class="field-group"><label>Race time</label>
+        <input value=${time} onInput=${e=>setTime(e.target.value)} placeholder="19:59"/></div>
+    </div>
+    <button class="calc-btn" onClick=${calc}>Calculate</button>
+    ${res&&html`<div>
+      <div class="result-big">${res.vdot}</div>
+      <div class="result-sub">VDOT / VO₂Max estimate (mL/kg/min)</div>
+      <div class="result-card">
+        <div class="result-row"><span class="result-label">Easy pace</span><span class="result-value">${fmtPace(res.paces.easy)}/km</span></div>
+        <div class="result-row"><span class="result-label">Marathon pace</span><span class="result-value">${fmtPace(res.paces.mp)}/km</span></div>
+        <div class="result-row"><span class="result-label">Threshold pace</span><span class="result-value">${fmtPace(res.paces.thresh)}/km</span></div>
+        <div class="result-row"><span class="result-label">Interval pace</span><span class="result-value">${fmtPace(res.paces.intv)}/km</span></div>
+        <div class="result-row"><span class="result-label">Repetition pace</span><span class="result-value">${fmtPace(res.paces.rep)}/km</span></div>
+      </div>
+    </div>`}
+  </div>`;
+}
+
+function TrainingPaces(){
+  var [mode,setMode]=useState('race');
+  var [dist,setDist]=useState('5');
+  var [time,setTime]=useState('19:59');
+  var [vdotIn,setVdotIn]=useState('55');
+  var [res,setRes]=useState(null);
+  function calc(){
+    var vdot=mode==='vdot'?parseFloat(vdotIn):calcVDOT(parseFloat(dist),parseTime(time));
+    if(isNaN(vdot)||vdot<=0)return;
+    var p=vdotPaces(vdot);
+    setRes({vdot:Math.round(vdot*10)/10,
+      easy:{lo:fmtPace(p.easy*1.08),hi:fmtPace(p.easy*0.93)},
+      mp:fmtPace(p.mp),thresh:fmtPace(p.thresh),intv:fmtPace(p.intv),rep:fmtPace(p.rep)});
+  }
+  return html`<div>
+    <div class="field-group"><label>Input from</label>
+      <select value=${mode} onChange=${e=>setMode(e.target.value)}>
+        <option value="race">Recent race</option>
+        <option value="vdot">VDOT value</option>
+      </select></div>
+    ${mode==='race'?html`<div class="field-row field-row-2">
+      <div class="field-group"><label>Distance (km)</label>
+        <select value=${dist} onChange=${e=>setDist(e.target.value)}>
+          ${RACE_DISTS.map(d=>html`<option key=${d.km} value=${d.km}>${d.label}</option>`)}
+        </select></div>
+      <div class="field-group"><label>Race time</label>
+        <input value=${time} onInput=${e=>setTime(e.target.value)} placeholder="19:59"/></div>
+    </div>`:html`<div class="field-group"><label>VDOT</label>
+      <input type="number" value=${vdotIn} onInput=${e=>setVdotIn(e.target.value)} placeholder="55"/></div>`}
+    <button class="calc-btn" onClick=${calc}>Get Paces</button>
+    ${res&&html`<div>
+      <div style="text-align:center;font-size:13px;color:var(--muted);margin-bottom:12px">VDOT ${res.vdot}</div>
+      <div class="result-card">
+        <div class="result-row"><span class="result-label">Easy run</span><span class="result-value">${res.easy.lo}–${res.easy.hi}/km</span></div>
+        <div class="result-row"><span class="result-label">Marathon pace</span><span class="result-value">${res.mp}/km</span></div>
+        <div class="result-row"><span class="result-label">Threshold</span><span class="result-value">${res.thresh}/km</span></div>
+        <div class="result-row"><span class="result-label">Interval</span><span class="result-value">${res.intv}/km</span></div>
+        <div class="result-row"><span class="result-label">Repetition</span><span class="result-value">${res.rep}/km</span></div>
+      </div>
+    </div>`}
+  </div>`;
+}
+
+// Age grading factors (simplified world records at various ages, male)
+const AG_RECORDS = {5:12.78,10:26.17,21.0975:58.23,42.195:120.77}; // minutes
+const AG_OPEN   = {5:12.37,10:25.77,21.0975:56.15,42.195:119.48};
+function AgeGrading(){
+  var [age,setAge]=useState('44');
+  var [gender,setGender]=useState('M');
+  var [dist,setDist]=useState('5');
+  var [time,setTime]=useState('19:59');
+  var [res,setRes]=useState(null);
+  function calc(){
+    var a=parseInt(age);var t=parseTime(time);var d=parseFloat(dist);
+    if(isNaN(a)||isNaN(t)||isNaN(d))return;
+    // Simplified: age factor = 1 + 0.003*(age-35) for age>35
+    var ageFactor = a<=35?1:1+0.003*(a-35);
+    var openEquiv = t/ageFactor;
+    var wr = (AG_OPEN[d]||t/60)*60;
+    var grade = Math.min(100,Math.round(wr/t*100*ageFactor));
+    var cat = grade>=90?'World Class':grade>=80?'National Class':grade>=70?'Regional Class':grade>=60?'Local Class':grade>=50?'Recreational':' Age Grader';
+    setRes({ageFactor:ageFactor.toFixed(3),openEquiv:fmtTime(openEquiv),grade,cat});
+  }
+  return html`<div>
+    <div class="field-row field-row-3">
+      <div class="field-group"><label>Age</label>
+        <input type="number" value=${age} onInput=${e=>setAge(e.target.value)} placeholder="44"/></div>
+      <div class="field-group"><label>Gender</label>
+        <select value=${gender} onChange=${e=>setGender(e.target.value)}>
+          <option value="M">Male</option><option value="F">Female</option>
+        </select></div>
+      <div class="field-group"><label>Distance</label>
+        <select value=${dist} onChange=${e=>setDist(e.target.value)}>
+          ${RACE_DISTS.map(d=>html`<option key=${d.km} value=${d.km}>${d.label}</option>`)}
+        </select></div>
+    </div>
+    <div class="field-group"><label>Finish time</label>
+      <input value=${time} onInput=${e=>setTime(e.target.value)} placeholder="19:59"/></div>
+    <button class="calc-btn" onClick=${calc}>Grade</button>
+    ${res&&html`<div>
+      <div class="result-big">${res.grade}%</div>
+      <div class="result-sub">${res.cat}</div>
+      <div class="result-card">
+        <div class="result-row"><span class="result-label">Age factor</span><span class="result-value">${res.ageFactor}</span></div>
+        <div class="result-row"><span class="result-label">Open equivalent</span><span class="result-value">${res.openEquiv}</span></div>
+      </div>
+    </div>`}
+  </div>`;
+}
+
+function HillsImpact(){
+  var [dist,setDist]=useState('10');
+  var [gain,setGain]=useState('200');
+  var [flatPace,setFlatPace]=useState('4:30');
+  var [res,setRes]=useState(null);
+  function calc(){
+    var d=parseFloat(dist);var g=parseFloat(gain);var p=parsePace(flatPace);
+    if(isNaN(d)||isNaN(g)||isNaN(p))return;
+    // Minetti: ~1 extra minute per 100m gain per 10km
+    var extraMins=(g/100)*(d/10);
+    var flatTimeMins=p*d;
+    var adjustedMins=flatTimeMins+extraMins;
+    var adjustedPace=adjustedMins/d;
+    setRes({flatTime:fmtTime(flatTimeMins*60),adjTime:fmtTime(adjustedMins*60),
+      adjPace:fmtPace(adjustedPace),extraMins:extraMins.toFixed(1),
+      gradePct:((g/d/10)*100).toFixed(1)});
+  }
+  return html`<div>
+    <div class="field-row field-row-2">
+      <div class="field-group"><label>Distance (km)</label>
+        <input type="number" value=${dist} onInput=${e=>setDist(e.target.value)} placeholder="10"/></div>
+      <div class="field-group"><label>Elevation gain (m)</label>
+        <input type="number" value=${gain} onInput=${e=>setGain(e.target.value)} placeholder="200"/></div>
+    </div>
+    <div class="field-group"><label>Flat pace (min/km)</label>
+      <input value=${flatPace} onInput=${e=>setFlatPace(e.target.value)} placeholder="4:30"/></div>
+    <button class="calc-btn" onClick=${calc}>Calculate</button>
+    ${res&&html`<div class="result-card">
+      <div class="result-row"><span class="result-label">Avg gradient</span><span class="result-value">${res.gradePct}%</span></div>
+      <div class="result-row"><span class="result-label">Flat finish time</span><span class="result-value">${res.flatTime}</span></div>
+      <div class="result-row"><span class="result-label">Hill penalty</span><span class="result-value">+${res.extraMins} min</span></div>
+      <div class="result-row"><span class="result-label">Adjusted finish time</span><span class="result-value">${res.adjTime}</span></div>
+      <div class="result-row"><span class="result-label">Effective pace</span><span class="result-value">${res.adjPace}/km</span></div>
+    </div>`}
+  </div>`;
+}
+
+function WeightImpact(){
+  var [weight,setWeight]=useState('75');
+  var [target,setTarget]=useState('70');
+  var [pace,setPace]=useState('4:30');
+  var [res,setRes]=useState(null);
+  function calc(){
+    var w=parseFloat(weight);var tgt=parseFloat(target);var p=parsePace(pace);
+    if(isNaN(w)||isNaN(tgt)||isNaN(p))return;
+    // ~2 sec/mile per lb (≈1.24 sec/km per kg)
+    var diffKg=w-tgt;
+    var improveSecs=diffKg*1.24; // sec/km
+    var newPaceMins=p-improveSecs/60;
+    setRes({diffKg:diffKg.toFixed(1),improveSecs:improveSecs.toFixed(0),
+      newPace:fmtPace(newPaceMins),
+      marathonImprove:fmtTime(improveSecs*42.195)});
+  }
+  return html`<div>
+    <div class="field-row field-row-2">
+      <div class="field-group"><label>Current weight (kg)</label>
+        <input type="number" value=${weight} onInput=${e=>setWeight(e.target.value)} placeholder="75"/></div>
+      <div class="field-group"><label>Goal weight (kg)</label>
+        <input type="number" value=${target} onInput=${e=>setTarget(e.target.value)} placeholder="70"/></div>
+    </div>
+    <div class="field-group"><label>Current marathon pace (min/km)</label>
+      <input value=${pace} onInput=${e=>setPace(e.target.value)} placeholder="4:09"/></div>
+    <button class="calc-btn" onClick=${calc}>Calculate Impact</button>
+    ${res&&html`<div class="result-card">
+      <div class="result-row"><span class="result-label">Weight to lose</span><span class="result-value">${res.diffKg} kg</span></div>
+      <div class="result-row"><span class="result-label">Pace improvement</span><span class="result-value">${res.improveSecs} sec/km</span></div>
+      <div class="result-row"><span class="result-label">New marathon pace</span><span class="result-value">${res.newPace}/km</span></div>
+      <div class="result-row"><span class="result-label">Marathon time saved</span><span class="result-value">${res.marathonImprove}</span></div>
+    </div>`}
+  </div>`;
+}
+
+function BurnedCalories(){
+  var [weight,setWeight]=useState('75');
+  var [dist,setDist]=useState('10');
+  var [res,setRes]=useState(null);
+  function calc(){
+    var w=parseFloat(weight);var d=parseFloat(dist);
+    if(isNaN(w)||isNaN(d))return;
+    // ~1 kcal/kg/km (net calorie cost of running)
+    var kcal=Math.round(w*d);
+    var carbs=Math.round(kcal*0.55/4);   // 55% from carbs, 4kcal/g
+    var fat=Math.round(kcal*0.35/9);     // 35% from fat, 9kcal/g
+    var gels=Math.ceil(kcal/100);        // ~100kcal per gel
+    setRes({kcal,carbs,fat,gels});
+  }
+  return html`<div>
+    <div class="field-row field-row-2">
+      <div class="field-group"><label>Body weight (kg)</label>
+        <input type="number" value=${weight} onInput=${e=>setWeight(e.target.value)} placeholder="75"/></div>
+      <div class="field-group"><label>Distance (km)</label>
+        <input type="number" value=${dist} onInput=${e=>setDist(e.target.value)} placeholder="10"/></div>
+    </div>
+    <button class="calc-btn" onClick=${calc}>Calculate</button>
+    ${res&&html`<div>
+      <div class="result-big">${res.kcal}</div>
+      <div class="result-sub">kcal burned</div>
+      <div class="result-card">
+        <div class="result-row"><span class="result-label">Carbohydrate</span><span class="result-value">${res.carbs} g</span></div>
+        <div class="result-row"><span class="result-label">Fat</span><span class="result-value">${res.fat} g</span></div>
+        <div class="result-row"><span class="result-label">Gels needed (~100kcal)</span><span class="result-value">${res.gels}</span></div>
+      </div>
+    </div>`}
+  </div>`;
+}
+
+function BMICalc(){
+  var [weight,setWeight]=useState('75');
+  var [height,setHeight]=useState('180');
+  var [res,setRes]=useState(null);
+  function calc(){
+    var w=parseFloat(weight);var h=parseFloat(height)/100;
+    if(isNaN(w)||isNaN(h)||h<=0)return;
+    var bmi=w/(h*h);
+    var cat=bmi<18.5?'Underweight':bmi<25?'Normal weight':bmi<30?'Overweight':'Obese';
+    var runnerIdealLo=Math.round(20*h*h);
+    var runnerIdealHi=Math.round(22*h*h);
+    var color=bmi<18.5?'var(--orange)':bmi<25?'var(--green)':bmi<30?'var(--orange)':'var(--red)';
+    setRes({bmi:bmi.toFixed(1),cat,runnerIdealLo,runnerIdealHi,color});
+  }
+  return html`<div>
+    <div class="field-row field-row-2">
+      <div class="field-group"><label>Weight (kg)</label>
+        <input type="number" value=${weight} onInput=${e=>setWeight(e.target.value)} placeholder="75"/></div>
+      <div class="field-group"><label>Height (cm)</label>
+        <input type="number" value=${height} onInput=${e=>setHeight(e.target.value)} placeholder="180"/></div>
+    </div>
+    <button class="calc-btn" onClick=${calc}>Calculate BMI</button>
+    ${res&&html`<div>
+      <div class="result-big" style="color:${res.color}">${res.bmi}</div>
+      <div class="result-sub">${res.cat}</div>
+      <div class="result-card">
+        <div class="result-row"><span class="result-label">Ideal runner weight</span><span class="result-value">${res.runnerIdealLo}–${res.runnerIdealHi} kg</span></div>
+        <div class="result-row"><span class="result-label">BMI range (18.5–24.9)</span><span class="result-value">Normal</span></div>
+        <div class="result-row"><span class="result-label">Runner optimal BMI</span><span class="result-value">20–22</span></div>
+      </div>
+    </div>`}
+  </div>`;
+}
+
+const TOOLS = [
+  {id:'pace',label:'Pace/Speed\nConverter',icon:'⏱️',comp:PaceConverter},
+  {id:'cadence',label:'Cadence\nConverter',icon:'👣',comp:CadenceConverter},
+  {id:'splits',label:'Split\nTimes',icon:'⌚',comp:SplitTimes},
+  {id:'race',label:'Race\nPredictor',icon:'🏃',comp:RacePredictor},
+  {id:'pb',label:'PB\nAnalysis',icon:'🥇',comp:PBAnalysis},
+  {id:'vo2',label:'VO2Max &\nLactate',icon:'🫁',comp:VO2MaxCalc},
+  {id:'training',label:'Training\nPaces',icon:'🕐',comp:TrainingPaces},
+  {id:'age',label:'Age\nGrading',icon:'📊',comp:AgeGrading},
+  {id:'hills',label:'Hills\nImpact',icon:'⛰️',comp:HillsImpact},
+  {id:'weight',label:'Weight\nImpact',icon:'⚖️',comp:WeightImpact},
+  {id:'calories',label:'Burned\nCalories',icon:'🍔',comp:BurnedCalories},
+  {id:'bmi',label:'Body Mass\nIndex',icon:'📏',comp:BMICalc},
+];
+
+// ─── TOOL PANEL ───────────────────────────────────────────────────────────────
+function ToolPanel({tool,onClose}){
+  var Comp=tool.comp;
+  return html`<div class="panel-overlay" onClick=${e=>{if(e.target===e.currentTarget)onClose()}}>
+    <div class="panel">
+      <div class="panel-handle"></div>
+      <div class="panel-head">
+        <span class="panel-title">${tool.icon} ${tool.label.replace('\n',' ')}</span>
+        <button class="panel-close" onClick=${onClose}>✕</button>
+      </div>
+      <div class="panel-body"><${Comp}/></div>
+    </div>
+  </div>`;
+}
+
+// ─── TAB CALC ────────────────────────────────────────────────────────────────
+function TabCalc(){
+  var [activeTool,setActiveTool]=useState(null);
+  return html`<div class="scroll">
+    <div class="page-header">
+      <div class="page-title">Running Calculator</div>
+      <div class="page-sub">Melbourne 2026 — Target 2:55 · 4:09/km</div>
+    </div>
+    <div class="calc-grid">
+      ${TOOLS.map(t=>html`<button key=${t.id} class="tool-tile" onClick=${()=>setActiveTool(t)}>
+        <span class="tile-icon">${t.icon}</span>
+        <span class="tile-label">${t.label}</span>
+      </button>`)}
+    </div>
+    ${activeTool&&html`<${ToolPanel} tool=${activeTool} onClose=${()=>setActiveTool(null)}/>`}
+  </div>`;
+}
+
+// ─── PLAN: DAY LOG ────────────────────────────────────────────────────────────
+function DayCard({wk,day,planKm,logs,onSave,onCalc}){
+  var key=wk+'-'+day;
+  var saved=logs[key]||{};
+  var [open,setOpen]=useState(false);
+  var [status,setStatus]=useState(saved.status||'');
+  var [am,setAm]=useState(saved.am||'');
+  var [pm,setPm]=useState(saved.pm||'');
+  var [rpe,setRpe]=useState(saved.rpe||5);
+  var [note,setNote]=useState(saved.note||'');
+  function save(){
+    onSave(key,{status,am:parseFloat(am)||0,pm:parseFloat(pm)||0,rpe:parseInt(rpe),note});
+    setOpen(false);
+  }
+  var actualKm=(parseFloat(am)||0)+(parseFloat(pm)||0);
+  var hasSaved=saved.status;
+  return html`<div class="day-card">
+    <div class="day-head" onClick=${()=>setOpen(!open)}>
+      <div>
+        <div class="day-name">${DAY_NAMES[day]}</div>
+        <div class="day-type">${DAY_TYPES[day]}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        ${hasSaved&&html`<div class="${saved.status==='done'?'done-dot':saved.status==='skip'?'skip-dot':'mod-dot'}"></div>`}
+        ${hasSaved&&saved.am+saved.pm>0&&html`<span style="font-size:13px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums">${(saved.am+saved.pm).toFixed(1)}</span>`}
+        <span class="day-plan-km">${planKm||0}km</span>
+        <span style="color:var(--muted);font-size:18px">${open?'▲':'▼'}</span>
+      </div>
+    </div>
+    ${open&&html`<div class="day-log-form">
+      <div class="day-status-btns">
+        <button class=${'status-btn'+(status==='done'?' done':'')} onClick=${()=>setStatus('done')}>✓ Done</button>
+        <button class=${'status-btn'+(status==='skip'?' skip':'')} onClick=${()=>setStatus('skip')}>✗ Skipped</button>
+        <button class=${'status-btn'+(status==='mod'?' mod':'')} onClick=${()=>setStatus('mod')}>~ Modified</button>
+      </div>
+      <div class="day-log-inputs">
+        <div class="field-group"><label>AM (km)</label>
+          <input type="number" step="0.1" value=${am} onInput=${e=>setAm(e.target.value)} placeholder="0"/></div>
+        <div class="field-group"><label>PM (km)</label>
+          <input type="number" step="0.1" value=${pm} onInput=${e=>setPm(e.target.value)} placeholder="0"/></div>
+      </div>
+      <div class="rpe-row">
+        <div class="rpe-label"><span>RPE: ${rpe}/10</span><span style="color:${rpe>7?'var(--red)':rpe<4?'var(--green)':'var(--muted)'}">${rpe>7?'Hard 🔴':rpe<4?'Easy 🟢':'Moderate 🟡'}</span></div>
+        <input type="range" class="rpe-slider" min="1" max="10" value=${rpe} onInput=${e=>setRpe(e.target.value)}/>
+      </div>
+      <textarea class="note-area" rows="2" placeholder="How did it go? (optional)"
+        value=${note} onInput=${e=>setNote(e.target.value)}></textarea>
+      ${day==='sun'&&html`<button class="calc-link-btn" onClick=${()=>onCalc('splits')}>📊 Split Calculator</button>`}
+      ${day==='tue'&&html`<button class="calc-link-btn" onClick=${()=>onCalc('training')}>⏱ Training Paces</button>`}
+      ${day==='sat'&&html`<button class="calc-link-btn" onClick=${()=>onCalc('race')}>🏃 Race Predictor</button>`}
+      ${day==='fri'&&html`<button class="calc-link-btn" onClick=${()=>onCalc('hills')}>⛰️ Hills Impact</button>`}
+      <button class="save-log-btn" onClick=${save}>Save</button>
+    </div>`}
+  </div>`;
+}
+
+// ─── PLAN: WEEK DETAIL ────────────────────────────────────────────────────────
+function WeekDetail({wk,logs,onSave,onBack,onCalc}){
+  var w=PLAN[wk-1];
+  var totalActual=DAYS.reduce((s,d)=>{var k=wk+'-'+d;var l=logs[k];return s+(l?(l.am+l.pm):0);},0);
+  // Adaptive feedback
+  var prevWeeks=PLAN.slice(0,wk-1).filter(pw=>pw.actualTotal);
+  var recentOver=prevWeeks.slice(-2).filter(pw=>pw.actualTotal>pw.total*1.15).length;
+  return html`<div class="scroll">
+    <div class="wk-detail-header">
+      <button class="back-btn" onClick=${onBack}>← Back</button>
+      <div class="wk-detail-title">Week ${wk} · ${w.phase}</div>
+      <div class="wk-detail-sub">${w.dates} · Plan: ${w.total}km</div>
+      <div class="wk-detail-session">${w.session}</div>
+    </div>
+    ${recentOver>=2&&wk>=3&&html`<div class="warn-banner">
+      ⚠️ You've run 15%+ over plan 2 weeks in a row. This is how overtraining injuries start. Trust the plan volume — quality > quantity right now.
+    </div>`}
+    ${w.comment&&html`<div class="wk-comment-box">
+      <div class="wk-comment-label">Coach Note</div>
+      ${w.comment}
+    </div>`}
+    ${totalActual>0&&html`<div style="display:flex;justify-content:space-between;align-items:center;padding:0 12px 8px">
+      <span style="font-size:13px;color:var(--muted)">Logged this week</span>
+      <span style="font-size:15px;font-weight:700;color:${totalActual>w.total*1.15?'var(--orange)':totalActual>w.total*0.9?'var(--green)':'var(--text)'}">${totalActual.toFixed(1)} / ${w.total} km</span>
+    </div>`}
+    <div class="day-cards">
+      ${DAYS.map(d=>html`<${DayCard} key=${d} wk=${wk} day=${d}
+        planKm=${w.plan[d]} logs=${logs} onSave=${onSave} onCalc=${onCalc}/>`)}
+    </div>
+  </div>`;
+}
+
+// ─── PLAN: WEEK LIST ──────────────────────────────────────────────────────────
+function TabPlan({onCalc}){
+  var [logs,setLogs]=useState(()=>getLogs());
+  var [view,setView]=useState(null); // null=list, wk number=detail
+
+  function saveLog(key,data){
+    var newLogs={...logs,[key]:data};
+    setLogs(newLogs);saveLogs(newLogs);
+  }
+
+  var totalActualKm=PLAN.reduce((s,w)=>{
+    if(!w.actualTotal){
+      var wkActual=DAYS.reduce((ws,d)=>{var k=w.wk+'-'+d;var l=logs[k];return ws+(l?(l.am+l.pm):0);},0);
+      return s+wkActual;
+    }
+    return s+w.actualTotal;
+  },0);
+
+  if(view!==null){
+    return html`<${WeekDetail} wk=${view} logs=${logs} onSave=${saveLog}
+      onBack=${()=>setView(null)} onCalc=${onCalc}/>`;
+  }
+
+  return html`<div>
+    <div class="plan-header">
+      <div class="page-title" style="color:#fff;font-size:20px">Melbourne Marathon 2026</div>
+      <div class="plan-meta">Race Day: 11 Oct 2026 · Target: Sub-2:55 (4:09/km)</div>
+      <div class="plan-meta" style="margin-top:6px;font-size:11px;opacity:.7">Starting parkrun: 19:59 · 24 weeks</div>
+    </div>
+    <div class="plan-stats">
+      <div class="stat-card">
+        <div class="stat-val">${CURRENT_WEEK}</div>
+        <div class="stat-lab">Current Week</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val">${Math.round(totalActualKm)}</div>
+        <div class="stat-lab">km Logged</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val">${24-CURRENT_WEEK+1}</div>
+        <div class="stat-lab">Weeks Left</div>
+      </div>
+    </div>
+    <div class="week-list scroll">
+      ${PLAN.map(w=>{
+        var wkActual=w.actualTotal||DAYS.reduce((s,d)=>{var k=w.wk+'-'+d;var l=logs[k];return s+(l?(l.am+l.pm):0);},0);
+        var pct=wkActual>0?Math.min(130,Math.round(wkActual/w.total*100)):0;
+        var barColor=pct>115?'var(--orange)':pct>=90?'var(--green)':'var(--teal)';
+        var isCurrent=w.wk===CURRENT_WEEK;
+        return html`<div key=${w.wk} class=${'week-card'+(isCurrent?' current':'')} onClick=${()=>setView(w.wk)}>
+          <div class="wk-head">
+            <div class="wk-num">W${w.wk}</div>
+            <div class="wk-info">
+              <div class="wk-dates">${w.dates}${isCurrent?html`<span class="current-badge">NOW</span>`:''}</div>
+              <div class="wk-session">${w.session}</div>
+            </div>
+            <div class="wk-km">
+              <span class=${'phase-chip phase-'+w.phase}>${w.phase}</span>
+              <span class="wk-km-plan">${w.total} km</span>
+              ${wkActual>0&&html`<span class="wk-km-actual" style="color:${pct>115?'var(--orange)':pct>=90?'var(--green)':'var(--muted)'}">${wkActual.toFixed(0)} actual</span>`}
+            </div>
+          </div>
+          ${wkActual>0&&html`<div class="wk-bar"><div class="wk-bar-fill" style="width:${pct}%;background:${barColor}"></div></div>`}
+        </div>`;
+      })}
+    </div>
+  </div>`;
+}
+
+// ─── APP ROOT ─────────────────────────────────────────────────────────────────
+function App(){
+  var [tab,setTab]=useState('plan');
+  var [calcTool,setCalcTool]=useState(null);
+
+  function openCalc(toolId){
+    var t=TOOLS.find(x=>x.id===toolId);
+    if(t){setTab('calc');setCalcTool(t);}
+  }
+
+  return html`<div id="app">
+    ${tab==='calc'&&html`<${TabCalc} defaultTool=${calcTool} key=${calcTool?.id}/>`}
+    ${tab==='plan'&&html`<${TabPlan} onCalc=${openCalc}/>`}
+    <nav class="nav">
+      <button class=${'nav-btn'+(tab==='calc'?' active':'')} onClick=${()=>{setTab('calc');setCalcTool(null);}}>
+        <span class="nav-icon">🧮</span>
+        <span class="nav-label">Calculator</span>
+      </button>
+      <button class=${'nav-btn'+(tab==='plan'?' active':'')} onClick=${()=>setTab('plan')}>
+        <span class="nav-icon">📋</span>
+        <span class="nav-label">My Plan</span>
+      </button>
+    </nav>
+  </div>`;
+}
+
+ReactDOM.createRoot(document.getElementById('app')).render(html`<${App}/>`);
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>
