@@ -472,7 +472,7 @@ window.calcTool = function(id) {
       var ms=(1000/60)/p, sl=ms/(c/60), optSl=ms/(180/60);
       var tip=c<170?'⬆️ Increase cadence — shorter, quicker steps reduce injury risk':c>185?'🔄 High cadence — focus on relaxed turnover':'✅ Cadence is in the optimal 170–185 range';
       h='<div class="rc"><div class="rr"><span class="rl">Stride length</span><span class="rv">'+sl.toFixed(2)+' m</span></div>'
-        +'<div class="rr"><span class="rl">Step length</span><span class="rv">'+（sl/2).toFixed(2)+' m</span></div>'
+        +'<div class="rr"><span class="rl">Step length</span><span class="rv">'+(sl/2).toFixed(2)+' m</span></div>'
         +'<div class="rr"><span class="rl">Stride @ 180spm</span><span class="rv">'+optSl.toFixed(2)+' m</span></div></div>'
         +'<div style="background:var(--teal-bg);border-radius:8px;padding:10px;font-size:13px;color:var(--teal3)">'+tip+'</div>';
       break;
