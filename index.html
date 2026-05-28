@@ -295,6 +295,12 @@ function parseTime(s) {
   if (p.length===2) return p[0]*60+p[1];
   return NaN;
 }
+function hms(hId, mId, sId) {
+  var h=parseInt(document.getElementById(hId).value)||0;
+  var m=parseInt(document.getElementById(mId).value)||0;
+  var s=parseInt(document.getElementById(sId).value)||0;
+  return h*3600+m*60+s;
+}
 function fmtTime(sec) {
   if (!isFinite(sec)||sec<0) return '--';
   var h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=Math.round(sec%60);
@@ -343,45 +349,86 @@ var TOOLS = [
 function toolForm(id) {
   switch(id) {
     case 'pace': return `
-      <div class="fr2">
-        <div class="fg"><label>Pace (min:sec)</label><input id="p-pace" value="5:00"></div>
-        <div class="fg"><label>Speed (km/h)</label><input id="p-speed" value="12" type="number" step="0.1"></div>
+      <div class="fg"><label>Speed (km/h)</label><input id="p-spd" value="12" type="number" step="0.1"></div>
+      <button class="btn" style="margin-bottom:8px" onclick="calcPaceFrom('spd')">CALC from Speed</button>
+      <div class="fg"><label>Pace (mm:ss /km)</label>
+        <div style="display:flex;align-items:center;gap:6px">
+          <input id="p-pm" value="5" type="number" min="0" style="width:60px">
+          <span style="font-size:18px;color:var(--muted)">:</span>
+          <input id="p-ps" value="00" type="number" min="0" max="59" style="width:60px">
+        </div>
       </div>
-      <button class="btn" onclick="calcTool('pace')">Convert</button>
-      <div id="tool-result"></div>`;
+      <button class="btn" style="margin-bottom:8px" onclick="calcPaceFrom('pace')">CALC from Pace</button>
+      <hr style="border:none;border-top:2px dashed #ccc;margin:8px 0">
+      <div class="fg"><label>Distance (km)</label><input id="p-dist" value="42.2" type="number" step="0.1"></div>
+      <button class="btn" style="margin-bottom:8px" onclick="calcPaceFrom('dist')">CALC from Distance</button>
+      <div class="fg"><label>Time (hh:mm:ss)</label>
+        <div style="display:flex;align-items:center;gap:6px">
+          <input id="p-th" value="0" type="number" min="0" style="width:60px">
+          <span style="font-size:18px;color:var(--muted)">:</span>
+          <input id="p-tm" value="0" type="number" min="0" max="59" style="width:60px">
+          <span style="font-size:18px;color:var(--muted)">:</span>
+          <input id="p-ts" value="0" type="number" min="0" max="59" style="width:60px">
+        </div>
+      </div>
+      <button class="btn" onclick="calcPaceFrom('time')">CALC from Time</button>
+      <div id="pace-result"></div>`;
     case 'cadence': return `
-      <div class="fr2">
-        <div class="fg"><label>Cadence (spm)</label><input id="c-cad" value="170" type="number"></div>
-        <div class="fg"><label>Pace (min/km)</label><input id="c-pace" value="5:00"></div>
+      <div class="fg"><label>Pace (mm:ss /km)</label>
+        <div style="display:flex;align-items:center;gap:6px">
+          <input id="cd-pm" value="5" type="number" min="0" style="width:60px">
+          <span style="font-size:18px;color:var(--muted)">:</span>
+          <input id="cd-ps" value="00" type="number" min="0" max="59" style="width:60px">
+        </div>
       </div>
-      <button class="btn" onclick="calcTool('cadence')">Calculate</button>
-      <div id="tool-result"></div>`;
+      <button class="btn" style="margin-bottom:8px" onclick="calcCad('pace')">CALC from Pace</button>
+      <div class="fg"><label>Stride length (cm)</label><input id="cd-sl" value="150" type="number" step="1"></div>
+      <button class="btn" style="margin-bottom:8px" onclick="calcCad('stride')">CALC from Stride</button>
+      <div class="fg"><label>Cadence (spm)</label><input id="cd-cad" value="180" type="number"></div>
+      <button class="btn" onclick="calcCad('cad')">CALC from Cadence</button>
+      <div id="cad-result"></div>`;
     case 'splits': return `
-      <div class="fr2">
-        <div class="fg"><label>Distance (km)</label><input id="s-dist" value="42.2" type="number" step="0.1"></div>
-        <div class="fg"><label>Target time</label><input id="s-time" value="2:55:00"></div>
+      <div class="fg"><label>Distance (km)</label><input id="s-dist" value="42.2" type="number" step="0.1"></div>
+      <div class="fg"><label>Time (hh:mm:ss)</label>
+        <div style="display:flex;align-items:center;gap:6px">
+          <input id="s-th" value="2" type="number" min="0" style="width:60px">
+          <span style="font-size:18px;color:var(--muted)">:</span>
+          <input id="s-tm" value="55" type="number" min="0" max="59" style="width:60px">
+          <span style="font-size:18px;color:var(--muted)">:</span>
+          <input id="s-ts" value="0" type="number" min="0" max="59" style="width:60px">
+        </div>
       </div>
-      <div class="fg"><label>Split every</label>
-        <select id="s-split"><option value="1">Every 1 km</option><option value="5" selected>Every 5 km</option><option value="10">Every 10 km</option></select>
-      </div>
+      <div class="fg"><label>Split every (km)</label><input id="s-split" value="5" type="number" step="0.5"></div>
       <button class="btn" onclick="calcTool('splits')">Generate Splits</button>
       <div id="tool-result"></div>`;
     case 'race': return `
-      <div class="fr2">
-        <div class="fg"><label>Distance</label>
-          <select id="r-dist"><option value="5">5K</option><option value="10">10K</option><option value="21.0975">Half</option><option value="42.195">Marathon</option></select>
+      <div class="fg"><label>Distance (km)</label><input id="r-dist" value="5" type="number" step="0.1"></div>
+      <div class="fg"><label>Time (hh:mm:ss)</label>
+        <div style="display:flex;align-items:center;gap:6px">
+          <input id="r-th" value="0" type="number" min="0" style="width:60px">
+          <span style="font-size:18px;color:var(--muted)">:</span>
+          <input id="r-tm" value="19" type="number" min="0" max="59" style="width:60px">
+          <span style="font-size:18px;color:var(--muted)">:</span>
+          <input id="r-ts" value="07" type="number" min="0" max="59" style="width:60px">
         </div>
-        <div class="fg"><label>Your time</label><input id="r-time" value="19:59"></div>
       </div>
+      <div class="fg"><label>Age (years)</label><input id="r-age" value="44" type="number"></div>
       <button class="btn" onclick="calcTool('race')">Predict Races</button>
       <div id="tool-result"></div>`;
-    case 'pb': return `
-      <div class="fg"><label>5K PB</label><input id="pb-5k" value="19:59" placeholder="19:59"></div>
-      <div class="fg"><label>10K PB</label><input id="pb-10k" placeholder="41:30"></div>
-      <div class="fg"><label>Half Marathon PB</label><input id="pb-hm" placeholder="1:32:00"></div>
-      <div class="fg"><label>Marathon PB</label><input id="pb-fm" placeholder="3:07:15"></div>
-      <button class="btn" onclick="calcTool('pb')">Analyse</button>
-      <div id="tool-result"></div>`;
+    case 'pb': {
+      if (!window.PB_ENTRIES) {
+        var pbSaved=localStorage.getItem('rt-pb');
+        window.PB_ENTRIES=pbSaved?JSON.parse(pbSaved):[{km:5,l:'5 km',t:0},{km:10,l:'10 km',t:0},{km:21.1,l:'21.1 km',t:0},{km:42.2,l:'42.2 km',t:0}];
+      }
+      var pbRows=window.PB_ENTRIES.map(function(e,i){
+        var tv=e.t>0?fmtTime(e.t):'';
+        return '<tr><td>'+e.l+'</td><td><input class="pb-t-inp" data-idx="'+i+'" value="'+tv+'" placeholder="h:mm:ss" style="width:90px;padding:4px;border:1px solid #ddd;border-radius:6px;font-size:13px"></td><td id="pb-pot-'+i+'">—</td></tr>';
+      }).join('');
+      return '<table class="rt"><thead><tr><th>Distance</th><th>Your PB</th><th>Potential</th></tr></thead><tbody>'+pbRows+'</tbody></table>'
+        +'<div class="fg" style="margin-top:12px"><label>Age (years)</label><input id="pb-age" value="44" type="number"></div>'
+        +'<button class="btn" onclick="calcTool(\'pb\')">Analyse</button>'
+        +'<div id="tool-result"></div>';
+    }
     case 'vo2': return `
       <div class="fr2">
         <div class="fg"><label>Distance</label>
@@ -392,13 +439,18 @@ function toolForm(id) {
       <button class="btn" onclick="calcTool('vo2')">Estimate VO2Max</button>
       <div id="tool-result"></div>`;
     case 'paces': return `
-      <div class="fg"><label>VDOT (or estimate from race below)</label><input id="tp-vdot" value="55" type="number" step="0.5"></div>
-      <div class="fr2">
-        <div class="fg"><label>Race distance</label>
-          <select id="tp-rdist"><option value="5">5K</option><option value="10">10K</option><option value="21.0975">Half</option><option value="42.195">Marathon</option></select>
+      <div class="fg"><label>Distance (km)</label><input id="tp-dist" value="5" type="number" step="0.1"></div>
+      <div class="fg"><label>Time (hh:mm:ss)</label>
+        <div style="display:flex;align-items:center;gap:6px">
+          <input id="tp-th" value="0" type="number" min="0" style="width:60px">
+          <span style="font-size:18px;color:var(--muted)">:</span>
+          <input id="tp-tm" value="19" type="number" min="0" max="59" style="width:60px">
+          <span style="font-size:18px;color:var(--muted)">:</span>
+          <input id="tp-ts" value="07" type="number" min="0" max="59" style="width:60px">
         </div>
-        <div class="fg"><label>Race time</label><input id="tp-rtime" value="19:59"></div>
       </div>
+      <div class="fr2"><div class="fg"><label>Resting HR (bpm)</label><input id="tp-hrmin" value="45" type="number"></div>
+      <div class="fg"><label>Max HR (bpm)</label><input id="tp-hrmax" value="178" type="number"></div></div>
       <button class="btn" onclick="calcTool('paces')">Calculate Paces</button>
       <div id="tool-result"></div>`;
     case 'age': return `
@@ -453,32 +505,8 @@ window.calcTool = function(id) {
   function n(id) { return parseFloat(v(id)); }
 
   switch(id) {
-    case 'pace': {
-      var pIn=parsePace(v('p-pace')), spIn=n('p-speed');
-      var pKm, spKmh;
-      if (!isNaN(pIn)&&pIn>0) { pKm=pIn; spKmh=60/pIn; }
-      else if (!isNaN(spIn)&&spIn>0) { spKmh=spIn; pKm=60/spIn; }
-      else { el.innerHTML='<p style="color:var(--red)">Enter a valid pace or speed.</p>'; return; }
-      var pMile=pKm*1.60934, spMph=spKmh/1.60934;
-      h='<div class="rc"><div class="rr"><span class="rl">Pace /km</span><span class="rv">'+fmtPace(pKm)+' min/km</span></div>'
-        +'<div class="rr"><span class="rl">Pace /mile</span><span class="rv">'+fmtPace(pMile)+' min/mi</span></div>'
-        +'<div class="rr"><span class="rl">Speed</span><span class="rv">'+spKmh.toFixed(2)+' km/h</span></div>'
-        +'<div class="rr"><span class="rl">Speed</span><span class="rv">'+spMph.toFixed(2)+' mph</span></div></div>';
-      break;
-    }
-    case 'cadence': {
-      var c=n('c-cad'), p=parsePace(v('c-pace'));
-      if (isNaN(c)||isNaN(p)||c<=0||p<=0) { el.innerHTML='<p style="color:var(--red)">Enter valid values.</p>'; return; }
-      var ms=(1000/60)/p, sl=ms/(c/60), optSl=ms/(180/60);
-      var tip=c<170?'⬆️ Increase cadence — shorter, quicker steps reduce injury risk':c>185?'🔄 High cadence — focus on relaxed turnover':'✅ Cadence is in the optimal 170–185 range';
-      h='<div class="rc"><div class="rr"><span class="rl">Stride length</span><span class="rv">'+sl.toFixed(2)+' m</span></div>'
-        +'<div class="rr"><span class="rl">Step length</span><span class="rv">'+(sl/2).toFixed(2)+' m</span></div>'
-        +'<div class="rr"><span class="rl">Stride @ 180spm</span><span class="rv">'+optSl.toFixed(2)+' m</span></div></div>'
-        +'<div style="background:var(--teal-bg);border-radius:8px;padding:10px;font-size:13px;color:var(--teal3)">'+tip+'</div>';
-      break;
-    }
     case 'splits': {
-      var d=n('s-dist'), t=parseTime(v('s-time')), sd=parseFloat(v('s-split'));
+      var d=n('s-dist'), t=hms('s-th','s-tm','s-ts'), sd=parseFloat(v('s-split'));
       if (isNaN(d)||isNaN(t)||d<=0||t<=0) { el.innerHTML='<p style="color:var(--red)">Enter valid distance and time.</p>'; return; }
       var ppk=t/d, rows='', cum=0;
       for (var i=sd; i<=d+0.001; i+=sd) {
@@ -492,32 +520,41 @@ window.calcTool = function(id) {
       break;
     }
     case 'race': {
-      var d=n('r-dist'), t=parseTime(v('r-time'));
-      if (isNaN(d)||isNaN(t)||d<=0||t<=0) { el.innerHTML='<p style="color:var(--red)">Enter valid values.</p>'; return; }
-      var dists=[{l:'5K',km:5},{l:'10K',km:10},{l:'Half',km:21.0975},{l:'30K',km:30},{l:'Marathon',km:42.195}];
+      var d=parseFloat(v('r-dist')), t=hms('r-th','r-tm','r-ts');
+      var raceAge=n('r-age');
+      if (!d||!t||d<=0) { el.innerHTML='<p style="color:var(--red)">Enter valid distance and time.</p>'; return; }
+      var ageFactor=raceAge<35?1:1+(raceAge-35)*0.003;
+      var dists=[{l:'400 m',km:0.4},{l:'800 m',km:0.8},{l:'1 km',km:1},{l:'1.5 km',km:1.5},{l:'3.175 km (Cooper)',km:3.175},{l:'5 km',km:5},{l:'10 km',km:10},{l:'14.639 km (1 Hour)',km:14.639},{l:'15 km',km:15},{l:'21.1 km',km:21.1},{l:'42.2 km',km:42.2},{l:'100 km',km:100}];
       var rows=dists.map(function(rd){
-        var sec=riegel(t,d,rd.km);
-        var hi=rd.km===d?' class="hi"':'';
+        var sec=riegel(t,d,rd.km)*ageFactor;
+        var hi=Math.abs(rd.km-d)<0.01?' class="hi"':'';
         return '<tr'+hi+'><td>'+rd.l+'</td><td>'+fmtTime(sec)+'</td><td>'+fmtPace(sec/rd.km/60)+'/km</td></tr>';
       }).join('');
       h='<table class="rt"><thead><tr><th>Race</th><th>Predicted</th><th>Pace/km</th></tr></thead><tbody>'+rows+'</tbody></table>';
       break;
     }
     case 'pb': {
-      var entries=[];
-      var defs=[{id:'pb-5k',km:5,l:'5K'},{id:'pb-10k',km:10,l:'10K'},{id:'pb-hm',km:21.0975,l:'Half'},{id:'pb-fm',km:42.195,l:'Marathon'}];
-      defs.forEach(function(d){ var t=parseTime(v(d.id)); if(!isNaN(t)&&t>0) entries.push({km:d.km,l:d.l,secs:t}); });
-      if (!entries.length) { el.innerHTML='<p style="color:var(--red)">Enter at least one PB.</p>'; return; }
-      var base=entries[0];
-      var rows=defs.map(function(d){
-        var pred=riegel(base.secs,base.km,d.km);
-        var actual=entries.find(function(e){return e.km===d.km;});
-        var diff=actual?Math.round(actual.secs-pred):null;
-        var dc=diff===null?'#999':diff>30?'var(--red)':diff<-30?'var(--green)':'var(--text)';
-        return '<tr><td>'+d.l+'</td><td>'+fmtTime(pred)+'</td><td>'+(actual?fmtTime(actual.secs):'—')+'</td>'
-          +'<td style="color:'+dc+'">'+(diff===null?'—':diff>0?'+'+diff+'s':diff+'s')+'</td></tr>';
+      if (!window.PB_ENTRIES) {
+        var pbSaved2=localStorage.getItem('rt-pb');
+        window.PB_ENTRIES=pbSaved2?JSON.parse(pbSaved2):[{km:5,l:'5 km',t:0},{km:10,l:'10 km',t:0},{km:21.1,l:'21.1 km',t:0},{km:42.2,l:'42.2 km',t:0}];
+      }
+      var pbInputs=document.querySelectorAll('.pb-t-inp');
+      pbInputs.forEach(function(inp){
+        var idx=parseInt(inp.dataset.idx);
+        var pt=parseTime(inp.value);
+        if (!isNaN(pt)&&pt>0) window.PB_ENTRIES[idx].t=pt; else window.PB_ENTRIES[idx].t=0;
+      });
+      localStorage.setItem('rt-pb',JSON.stringify(window.PB_ENTRIES));
+      var pbHasTime=window.PB_ENTRIES.filter(function(e){return e.t>0;});
+      if (!pbHasTime.length) { el.innerHTML='<p style="color:var(--red)">Enter at least one PB time (e.g. 19:07 or 1:32:00).</p>'; return; }
+      var pbBase=pbHasTime.reduce(function(a,b){return (a.t/a.km)<(b.t/b.km)?a:b;});
+      var rows2=window.PB_ENTRIES.map(function(e){
+        var pred=riegel(pbBase.t,pbBase.km,e.km);
+        var pctTxt=''; var potStyle='';
+        if (e.t>0) { var pct=Math.round((e.t-pred)/e.t*1000)/10; pctTxt=' ('+pct.toFixed(1)+'%)'; potStyle=pct>2?'color:var(--green)':pct<0.5?'color:#999':''; }
+        return '<tr><td>'+e.l+'</td><td>'+(e.t>0?fmtTime(e.t):'—')+'</td><td style="'+potStyle+'">'+fmtTime(pred)+pctTxt+'</td></tr>';
       }).join('');
-      h='<table class="rt"><thead><tr><th>Race</th><th>Predicted</th><th>Actual</th><th>Diff</th></tr></thead><tbody>'+rows+'</tbody></table>';
+      h='<table class="rt"><thead><tr><th>Distance</th><th>Your PB</th><th>Potential</th></tr></thead><tbody>'+rows2+'</tbody></table>';
       break;
     }
     case 'vo2': {
@@ -532,17 +569,27 @@ window.calcTool = function(id) {
       break;
     }
     case 'paces': {
-      var vdot=n('tp-vdot');
-      var rt=parseTime(v('tp-rtime')), rd=n('tp-rdist');
-      if (!isNaN(rt)&&!isNaN(rd)&&rt>0&&rd>0) vdot=calcVDOT(rd,rt);
-      if (isNaN(vdot)||vdot<=0) { el.innerHTML='<p style="color:var(--red)">Enter VDOT or a race time.</p>'; return; }
-      var p=vdotPaces(vdot);
-      h='<div class="rbig">'+vdot.toFixed(1)+'</div><div class="rsub">VDOT</div>'
-        +'<div class="rc"><div class="rr"><span class="rl">Easy</span><span class="rv">'+p.easy+'/km</span></div>'
-        +'<div class="rr"><span class="rl">Marathon pace</span><span class="rv">'+p.mp+'/km</span></div>'
-        +'<div class="rr"><span class="rl">Threshold</span><span class="rv">'+p.thresh+'/km</span></div>'
-        +'<div class="rr"><span class="rl">Interval</span><span class="rv">'+p.intv+'/km</span></div>'
-        +'<div class="rr"><span class="rl">Repetition</span><span class="rv">'+p.rep+'/km</span></div></div>';
+      var tpDist=parseFloat(v('tp-dist')), tpTime=hms('tp-th','tp-tm','tp-ts');
+      var hrMin=n('tp-hrmin'), hrMax=n('tp-hrmax');
+      if (!tpDist||!tpTime) { el.innerHTML='<p style="color:var(--red)">Enter distance and time.</p>'; return; }
+      var ppkSec=tpTime/tpDist, paceMinKm=ppkSec/60;
+      var hrReserve=hrMax-hrMin;
+      var zones=[
+        {name:'Recovery',    pLo:1.36,pHi:1.50,hrLo:0.60,hrHi:0.70},
+        {name:'Long Run',    pLo:1.18,pHi:1.33,hrLo:0.65,hrHi:0.75},
+        {name:'Easy',        pLo:1.15,pHi:1.31,hrLo:0.65,hrHi:0.75},
+        {name:'Steady State',pLo:1.08,pHi:1.13,hrLo:0.75,hrHi:0.85},
+        {name:'Tempo',       pLo:1.04,pHi:1.08,hrLo:0.80,hrHi:0.88},
+        {name:'Tempo Intv.', pLo:1.03,pHi:1.07,hrLo:0.83,hrHi:0.90},
+        {name:'Interval',    pLo:1.00,pHi:1.04,hrLo:0.87,hrHi:0.95}
+      ];
+      var paceRows=zones.map(function(z){
+        var pLo=fmtPace(paceMinKm*z.pLo), pHi=fmtPace(paceMinKm*z.pHi);
+        var hrLo=Math.round(hrMin+z.hrLo*hrReserve), hrHi=Math.round(hrMin+z.hrHi*hrReserve);
+        return '<tr><td>'+z.name+'</td><td>'+pLo+' – '+pHi+'</td><td>'+hrLo+' – '+hrHi+'</td></tr>';
+      }).join('');
+      h='<div class="rbig">'+fmtPace(paceMinKm)+'</div><div class="rsub">Race pace /km</div>'
+        +'<table class="rt"><thead><tr><th>Zone</th><th>Pace /km</th><th>HR (bpm)</th></tr></thead><tbody>'+paceRows+'</tbody></table>';
       break;
     }
     case 'age': {
@@ -609,6 +656,75 @@ window.calcTool = function(id) {
     }
   }
   el.innerHTML = h;
+};
+
+window.calcPaceFrom = function(from) {
+  var el = document.getElementById('pace-result');
+  if (!el) return;
+  function gv(xid) { var e=document.getElementById(xid); return e?e.value:''; }
+  function gn(xid) { return parseFloat(gv(xid))||0; }
+  function sv(xid,val) { var e=document.getElementById(xid); if(e) e.value=val; }
+  var pm=gn('p-pm'), ps=gn('p-ps');
+  var paceMin=pm+ps/60;
+  var dist=gn('p-dist');
+  var th=gn('p-th'), tm=gn('p-tm'), ts=gn('p-ts');
+  var timeSec=th*3600+tm*60+ts;
+  if (from==='spd') {
+    var spd=gn('p-spd');
+    if (!spd) { el.innerHTML='<p style="color:var(--red)">Enter a speed.</p>'; return; }
+    paceMin=60/spd;
+    var pm2=Math.floor(paceMin), ps2=Math.round((paceMin-pm2)*60);
+    if (ps2===60){pm2++;ps2=0;} sv('p-pm',pm2); sv('p-ps',ps2<10?'0'+ps2:String(ps2));
+  } else if (from==='pace') {
+    if (!paceMin||paceMin<=0) { el.innerHTML='<p style="color:var(--red)">Enter a pace.</p>'; return; }
+  } else if (from==='dist') {
+    if (!dist||!paceMin) { el.innerHTML='<p style="color:var(--red)">Enter distance and pace first.</p>'; return; }
+    timeSec=dist*paceMin*60;
+    var fth=Math.floor(timeSec/3600), ftm=Math.floor((timeSec%3600)/60), fts=Math.round(timeSec%60);
+    if (fts===60){ftm++;fts=0;} if(ftm===60){fth++;ftm=0;}
+    sv('p-th',fth); sv('p-tm',ftm<10?'0'+ftm:String(ftm)); sv('p-ts',fts<10?'0'+fts:String(fts));
+  } else if (from==='time') {
+    if (!timeSec||!dist) { el.innerHTML='<p style="color:var(--red)">Enter time and distance first.</p>'; return; }
+    paceMin=timeSec/dist/60;
+    var pm3=Math.floor(paceMin), ps3=Math.round((paceMin-pm3)*60);
+    if (ps3===60){pm3++;ps3=0;} sv('p-pm',pm3); sv('p-ps',ps3<10?'0'+ps3:String(ps3));
+  }
+  if (!paceMin||paceMin<=0) { el.innerHTML='<p style="color:var(--red)">Cannot compute.</p>'; return; }
+  var spKmh=60/paceMin, spMph=spKmh/1.60934, paceMile=paceMin*1.60934;
+  el.innerHTML='<div class="rc">'
+    +'<div class="rr"><span class="rl">Pace /km</span><span class="rv">'+fmtPace(paceMin)+' min/km</span></div>'
+    +'<div class="rr"><span class="rl">Pace /mile</span><span class="rv">'+fmtPace(paceMile)+' min/mi</span></div>'
+    +'<div class="rr"><span class="rl">Speed</span><span class="rv">'+spKmh.toFixed(2)+' km/h</span></div>'
+    +'<div class="rr"><span class="rl">Speed</span><span class="rv">'+spMph.toFixed(2)+' mph</span></div></div>';
+};
+
+window.calcCad = function(from) {
+  var el = document.getElementById('cad-result');
+  if (!el) return;
+  function gv2(xid) { var e=document.getElementById(xid); return e?e.value:''; }
+  function gn2(xid) { return parseFloat(gv2(xid))||0; }
+  function sv2(xid,val) { var e=document.getElementById(xid); if(e) e.value=val; }
+  var pm=gn2('cd-pm'), ps=gn2('cd-ps');
+  var paceMin=pm+ps/60; if (!paceMin||paceMin<=0) paceMin=5;
+  var sl=gn2('cd-sl');
+  var cad=gn2('cd-cad');
+  var speedMpm=1000/paceMin;
+  if (from==='pace') {
+    if (!cad) cad=180;
+    sl=(speedMpm/cad)*100; sv2('cd-sl',sl.toFixed(1));
+  } else if (from==='stride') {
+    if (!sl) { el.innerHTML='<p style="color:var(--red)">Enter stride length.</p>'; return; }
+    cad=speedMpm/(sl/100); sv2('cd-cad',Math.round(cad));
+  } else if (from==='cad') {
+    if (!cad) { el.innerHTML='<p style="color:var(--red)">Enter cadence.</p>'; return; }
+    sl=(speedMpm/cad)*100; sv2('cd-sl',sl.toFixed(1));
+  }
+  var tip=cad<170?'Increase cadence — shorter, quicker steps reduce injury risk':cad>185?'High cadence — focus on relaxed turnover':'Cadence is in the optimal 170-185 spm range';
+  el.innerHTML='<div class="rc">'
+    +'<div class="rr"><span class="rl">Stride length</span><span class="rv">'+(sl/100).toFixed(2)+' m</span></div>'
+    +'<div class="rr"><span class="rl">Cadence</span><span class="rv">'+Math.round(cad)+' spm</span></div>'
+    +'<div class="rr"><span class="rl">Speed</span><span class="rv">'+( 60/paceMin).toFixed(2)+' km/h</span></div></div>'
+    +'<div style="background:var(--teal-bg);border-radius:8px;padding:10px;font-size:13px;color:var(--teal3);margin-top:8px">'+tip+'</div>';
 };
 
 // ─── RENDER FUNCTIONS ────────────────────────────────────────────────────────
@@ -844,17 +960,10 @@ window.openCalcLink=function(toolId){
 // ─── BOOT ─────────────────────────────────────────────────────────────────────
 render();
 
-// Kill any previously-registered service worker + clear caches so the
-// browser never serves a stale (blank) version of this page again.
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(function(rs){
-    rs.forEach(function(r){ r.unregister(); });
-  }).catch(function(){});
-}
-if (window.caches && caches.keys) {
-  caches.keys().then(function(keys){
-    keys.forEach(function(k){ caches.delete(k); });
-  }).catch(function(){});
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js').catch(function(){});
+  });
 }
 </script>
 </body>
